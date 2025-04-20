@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 
@@ -81,14 +82,6 @@ export const ResumeAnalysis = ({
           </li>
         </ul>
       </div>
-
-      <Button 
-        className="w-full" 
-        onClick={onSaveConfirmation}
-      >
-        <Save className="mr-2 h-4 w-4" />
-        Save Resume
-      </Button>
     </div>
   );
 };

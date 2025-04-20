@@ -1,3 +1,4 @@
+
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,19 +24,19 @@ const Resume = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-bold">Resume Management</h1>
-          {isUploaded && (
+          {file && (
             <Button 
               onClick={handleSaveConfirmation}
-              size="sm"
+              variant="default"
             >
               <Save className="mr-2 h-4 w-4" />
               Save Resume
             </Button>
           )}
         </div>
-        <p className="text-gray-500 -mt-4">
+        <p className="text-gray-500 mb-6">
           Upload and manage your resume for automated job applications
         </p>
 
