@@ -50,6 +50,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ats_score: number | null
           created_at: string | null
           full_name: string | null
           id: string
@@ -57,6 +58,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ats_score?: number | null
           created_at?: string | null
           full_name?: string | null
           id: string
@@ -64,6 +66,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ats_score?: number | null
           created_at?: string | null
           full_name?: string | null
           id?: string

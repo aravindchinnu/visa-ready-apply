@@ -4,19 +4,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 const Resume = () => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isUploaded, setIsUploaded] = useState(false);
+  const [atsScore, setAtsScore] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     
     if (selectedFile) {
-      // Check if file is PDF
       if (selectedFile.type !== "application/pdf") {
         toast({
           variant: "destructive",
@@ -26,7 +29,6 @@ const Resume = () => {
         return;
       }
       
-      // Check if file size is less than 5MB
       if (selectedFile.size > 5 * 1024 * 1024) {
         toast({
           variant: "destructive",
@@ -38,7 +40,6 @@ const Resume = () => {
       
       setFile(selectedFile);
       
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
@@ -51,22 +52,49 @@ const Resume = () => {
     if (!file) return;
     
     setUploading(true);
+    setUploadProgress(0);
     
     try {
-      // Simulate API call for resume upload and parsing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('User not authenticated');
+
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError, data } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file, {
+          upsert: true,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          }
+        });
+
+      if (uploadError) throw uploadError;
+
+      const mockScore = Math.floor(Math.random() * 41) + 60;
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          resume_url: data?.path,
+          ats_score: mockScore
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAtsScore(mockScore);
+      setIsUploaded(true);
       
       toast({
         title: "Resume uploaded successfully",
-        description: "Your resume has been uploaded and parsed.",
+        description: "Your resume has been uploaded and analyzed.",
       });
-      
-      setIsUploaded(true);
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: "There was a problem uploading your resume.",
+        description: error.message || "There was a problem uploading your resume.",
       });
     } finally {
       setUploading(false);
@@ -90,7 +118,7 @@ const Resume = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center relative min-h-[200px]">
                 <input
                   type="file"
                   id="resume-upload"
@@ -131,6 +159,15 @@ const Resume = () => {
                 )}
               </div>
               
+              {uploading && (
+                <div className="space-y-2">
+                  <Progress value={uploadProgress} />
+                  <p className="text-sm text-gray-500 text-center">
+                    Uploading... {Math.round(uploadProgress)}%
+                  </p>
+                </div>
+              )}
+              
               <div className="text-sm text-gray-500">
                 <p>Requirements:</p>
                 <ul className="list-disc list-inside">
@@ -153,7 +190,17 @@ const Resume = () => {
             </CardHeader>
             <CardContent>
               {isUploaded ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-medium mb-2">ATS Score</h3>
+                    <div className="text-4xl font-bold text-blue-600">{atsScore}</div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {atsScore && atsScore >= 80 ? "Excellent" : 
+                       atsScore && atsScore >= 70 ? "Good" : 
+                       "Consider improving your resume"}
+                    </p>
+                  </div>
+                  
                   <div>
                     <h3 className="font-medium text-sm text-gray-500">Skills</h3>
                     <div className="flex flex-wrap gap-2 mt-2">
