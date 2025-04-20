@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +7,49 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import LocationInput from "@/components/LocationInput";
+import { generateSummary } from "@/utils/resumeUtils";
 
 const Profile = () => {
   const [saving, setSaving] = useState(false);
+  const [location, setLocation] = useState("");
   const { toast } = useToast();
   
+  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      // Simulate file upload and text extraction
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const summary = await generateSummary({
+        text: "Sample resume text for demonstration",
+        fileName: file.name
+      });
+
+      // Update the professional summary textarea
+      const summaryElement = document.getElementById("summary") as HTMLTextAreaElement;
+      if (summaryElement) {
+        summaryElement.value = summary;
+      }
+
+      toast({
+        title: "Resume processed",
+        description: "Professional summary has been generated from your resume.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Processing failed",
+        description: "There was a problem processing your resume.",
+      });
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -75,10 +112,7 @@ const Profile = () => {
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" defaultValue="+1 (555) 123-4567" />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" defaultValue="New York, NY" />
-                  </div>
+                  <LocationInput value={location} onChange={setLocation} />
                 </div>
                 
                 <div className="space-y-2">
