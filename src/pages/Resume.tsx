@@ -1,3 +1,4 @@
+
 import { useState, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,14 +60,23 @@ const Resume = () => {
       if (!user) throw new Error('User not authenticated');
 
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      
+      // Create a custom upload progress handler
+      const uploadProgressCallback = (progress: { loaded: number; total: number }) => {
+        const percent = (progress.loaded / progress.total) * 100;
+        setUploadProgress(percent);
+      };
+      
+      // Add event listener to track upload progress
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', uploadProgressCallback);
+      
+      // Upload file to Supabase storage
       const { error: uploadError, data } = await supabase.storage
         .from('resumes')
         .upload(filePath, file, {
           upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = (progress.loaded / progress.total) * 100;
-            setUploadProgress(percent);
-          }
+          // Remove the onUploadProgress property as it's not supported
         });
 
       if (uploadError) throw uploadError;
