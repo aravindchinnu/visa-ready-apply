@@ -6,9 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    fullName: ''
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -16,26 +23,51 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // In a real app, you would handle registration with a backend
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+          }
+        }
+      });
+      
+      if (error) throw error;
       
       toast({
         title: "Account created!",
-        description: "You've successfully registered.",
+        description: "Please check your email to verify your account.",
       });
       
-      navigate("/dashboard");
-    } catch (error) {
+      navigate("/login");
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }));
   };
 
   return (
@@ -50,22 +82,47 @@ const Register = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" placeholder="John Doe" required />
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input 
+                id="fullName" 
+                placeholder="John Doe" 
+                required 
+                value={formData.fullName}
+                onChange={handleChange}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="hello@example.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="hello@example.com" 
+                required 
+                value={formData.email}
+                onChange={handleChange}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={formData.password}
+                onChange={handleChange}
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm">Confirm Password</Label>
-              <Input id="confirm" type="password" required />
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input 
+                id="confirmPassword" 
+                type="password" 
+                required 
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
