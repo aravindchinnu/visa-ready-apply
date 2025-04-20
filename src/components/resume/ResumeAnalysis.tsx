@@ -1,12 +1,17 @@
-
 import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
 
 interface ResumeAnalysisProps {
   isUploaded: boolean;
   atsScore: number | null;
+  onSaveConfirmation: () => void;
 }
 
-export const ResumeAnalysis = ({ isUploaded, atsScore }: ResumeAnalysisProps) => {
+export const ResumeAnalysis = ({ 
+  isUploaded, 
+  atsScore, 
+  onSaveConfirmation 
+}: ResumeAnalysisProps) => {
   if (!isUploaded) {
     return (
       <div className="flex flex-col items-center justify-center py-8">
@@ -77,8 +82,12 @@ export const ResumeAnalysis = ({ isUploaded, atsScore }: ResumeAnalysisProps) =>
         </ul>
       </div>
 
-      <Button className="w-full" variant="outline">
-        Edit Extracted Information
+      <Button 
+        className="w-full" 
+        onClick={onSaveConfirmation}
+      >
+        <Save className="mr-2 h-4 w-4" />
+        Save Resume
       </Button>
     </div>
   );

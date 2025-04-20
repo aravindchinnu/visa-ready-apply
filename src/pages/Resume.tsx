@@ -78,7 +78,11 @@ const Resume = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ResumeAnalysis isUploaded={isUploaded} atsScore={atsScore} />
+              <ResumeAnalysis 
+                isUploaded={isUploaded} 
+                atsScore={atsScore} 
+                onSaveConfirmation={handleSaveConfirmation}
+              />
             </CardContent>
           </Card>
         </div>
