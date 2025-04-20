@@ -1,4 +1,6 @@
 
+import { Button } from "@/components/ui/button";
+
 interface ResumeAnalysisProps {
   isUploaded: boolean;
   atsScore: number | null;
