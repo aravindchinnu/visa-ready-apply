@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,11 +10,93 @@ import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import LocationInput from "@/components/LocationInput";
 import { generateSummary } from "@/utils/resumeUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    linkedin: "",
+    portfolio: "",
+    summary: "",
+    jobType: "fulltime",
+    salary: "80000",
+    workMode: "hybrid",
+    relocation: "yes",
+    h1b: "yes",
+    visibility: true
+  });
   const { toast } = useToast();
+  
+  useEffect(() => {
+    async function loadUserProfile() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+        
+        // Get profile data from profiles table
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
+        
+        if (data) {
+          // If we have user data, populate the form
+          setFormData({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            email: data.email || "",
+            phone: data.phone || "",
+            linkedin: data.linkedin || "",
+            portfolio: data.portfolio || "",
+            summary: data.summary || "",
+            jobType: data.job_type || "fulltime",
+            salary: data.salary?.toString() || "80000",
+            workMode: data.work_mode || "hybrid",
+            relocation: data.relocation || "yes",
+            h1b: data.h1b || "yes",
+            visibility: data.visibility !== false
+          });
+          
+          if (data.location) {
+            setLocation(data.location);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Error loading profile",
+          description: "There was a problem loading your profile data.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadUserProfile();
+  }, [toast]);
+  
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
   
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -53,14 +136,47 @@ const Profile = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          variant: "destructive", 
+          title: "Authentication required",
+          description: "Please sign in to save your profile.",
+        });
+        return;
+      }
+      
+      // Save profile data to Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          location: location,
+          linkedin: formData.linkedin,
+          portfolio: formData.portfolio,
+          summary: formData.summary,
+          job_type: formData.jobType,
+          salary: parseInt(formData.salary),
+          work_mode: formData.workMode,
+          relocation: formData.relocation,
+          h1b: formData.h1b,
+          visibility: formData.visibility,
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) throw error;
       
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error("Error saving profile:", error);
       toast({
         variant: "destructive",
         title: "Update failed",
@@ -70,6 +186,16 @@ const Profile = () => {
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[80vh]">
+          <p className="text-lg">Loading profile data...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -94,35 +220,60 @@ const Profile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue="John" />
+                    <Input 
+                      id="firstName" 
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" defaultValue="Doe" />
+                    <Input 
+                      id="lastName" 
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" defaultValue="+1 (555) 123-4567" />
+                    <Input 
+                      id="phone" 
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                    />
                   </div>
                   <LocationInput value={location} onChange={setLocation} />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="linkedin">LinkedIn Profile</Label>
-                  <Input id="linkedin" defaultValue="linkedin.com/in/johndoe" />
+                  <Input 
+                    id="linkedin" 
+                    value={formData.linkedin}
+                    onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="portfolio">Portfolio/Website</Label>
-                  <Input id="portfolio" defaultValue="johndoe.dev" />
+                  <Input 
+                    id="portfolio" 
+                    value={formData.portfolio}
+                    onChange={(e) => handleInputChange('portfolio', e.target.value)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -140,7 +291,8 @@ const Profile = () => {
                   <Textarea
                     id="summary"
                     rows={5}
-                    defaultValue="Experienced software developer with 5+ years of expertise in web application development. Proficient in React, TypeScript, and Node.js. Strong problem-solving abilities and experience working in agile environments."
+                    value={formData.summary}
+                    onChange={(e) => handleInputChange('summary', e.target.value)}
                   />
                 </div>
               </CardContent>
@@ -158,7 +310,10 @@ const Profile = () => {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="jobType">Job Type</Label>
-                  <Select defaultValue="fulltime">
+                  <Select 
+                    value={formData.jobType}
+                    onValueChange={(value) => handleInputChange('jobType', value)}
+                  >
                     <SelectTrigger id="jobType">
                       <SelectValue placeholder="Select job type" />
                     </SelectTrigger>
@@ -173,12 +328,20 @@ const Profile = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="salary">Minimum Salary</Label>
-                  <Input id="salary" type="number" defaultValue="80000" />
+                  <Input 
+                    id="salary" 
+                    type="number" 
+                    value={formData.salary}
+                    onChange={(e) => handleInputChange('salary', e.target.value)}
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="workMode">Work Mode</Label>
-                  <Select defaultValue="hybrid">
+                  <Select 
+                    value={formData.workMode}
+                    onValueChange={(value) => handleInputChange('workMode', value)}
+                  >
                     <SelectTrigger id="workMode">
                       <SelectValue placeholder="Select work mode" />
                     </SelectTrigger>
@@ -192,7 +355,10 @@ const Profile = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="relocation">Willing to Relocate</Label>
-                  <Select defaultValue="yes">
+                  <Select 
+                    value={formData.relocation}
+                    onValueChange={(value) => handleInputChange('relocation', value)}
+                  >
                     <SelectTrigger id="relocation">
                       <SelectValue placeholder="Select option" />
                     </SelectTrigger>
@@ -206,7 +372,10 @@ const Profile = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="h1b">Require H1B Sponsorship</Label>
-                  <Select defaultValue="yes">
+                  <Select 
+                    value={formData.h1b}
+                    onValueChange={(value) => handleInputChange('h1b', value)}
+                  >
                     <SelectTrigger id="h1b">
                       <SelectValue placeholder="Select option" />
                     </SelectTrigger>
@@ -231,10 +400,11 @@ const Profile = () => {
                       type="checkbox"
                       id="visibility"
                       className="peer h-0 w-0 opacity-0"
-                      defaultChecked
+                      checked={formData.visibility}
+                      onChange={(e) => handleInputChange('visibility', e.target.checked)}
                     />
-                    <span className="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white transition-all peer-checked:left-[22px] peer-checked:bg-white peer-checked:[&+.track]:bg-blue-600"></span>
-                    <span className="track absolute inset-0 rounded-full transition-all"></span>
+                    <span className={`absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white transition-all ${formData.visibility ? 'left-[22px] peer-checked:[&+.track]:bg-blue-600' : ''}`}></span>
+                    <span className={`track absolute inset-0 rounded-full transition-all ${formData.visibility ? 'bg-blue-600' : ''}`}></span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-500">
