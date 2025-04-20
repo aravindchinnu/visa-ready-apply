@@ -7,6 +7,9 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { FileUploadArea } from "@/components/resume/FileUploadArea";
 import { ResumeAnalysis } from "@/components/resume/ResumeAnalysis";
 import { useResumeUpload } from "@/hooks/useResumeUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const Resume = () => {
   const {
@@ -20,6 +23,24 @@ const Resume = () => {
     handleReset,
     handleSaveConfirmation,
   } = useResumeUpload();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleSave = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in to save your resume.",
+      });
+      navigate("/login");
+      return;
+    }
+
+    handleSaveConfirmation();
+  };
 
   return (
     <DashboardLayout>
@@ -28,7 +49,7 @@ const Resume = () => {
           <h1 className="text-3xl font-bold">Resume Management</h1>
           {file && (
             <Button 
-              onClick={handleSaveConfirmation}
+              onClick={handleSave}
               variant="default"
             >
               <Save className="mr-2 h-4 w-4" />
