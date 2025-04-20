@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,30 +5,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import LocationInput from "@/components/LocationInput";
 import { generateSummary } from "@/utils/resumeUtils";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ProfileData {
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  linkedin: string | null;
+  portfolio: string | null;
+  summary: string | null;
+  job_type: string | null;
+  salary: number | null;
+  work_mode: string | null;
+  relocation: string | null;
+  h1b: string | null;
+  visibility: boolean | null;
+}
+
 const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("");
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+  const [formData, setFormData] = useState<ProfileData>({
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
     linkedin: "",
     portfolio: "",
     summary: "",
-    jobType: "fulltime",
-    salary: "80000",
-    workMode: "hybrid",
+    job_type: "fulltime",
+    salary: 80000,
+    work_mode: "hybrid",
     relocation: "yes",
     h1b: "yes",
-    visibility: true
+    visibility: true,
+    location: ""
   });
   const { toast } = useToast();
   
@@ -43,7 +60,6 @@ const Profile = () => {
           return;
         }
         
-        // Get profile data from profiles table
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -55,26 +71,22 @@ const Profile = () => {
         }
         
         if (data) {
-          // If we have user data, populate the form
           setFormData({
-            firstName: data.first_name || "",
-            lastName: data.last_name || "",
+            first_name: data.first_name || "",
+            last_name: data.last_name || "",
             email: data.email || "",
             phone: data.phone || "",
             linkedin: data.linkedin || "",
             portfolio: data.portfolio || "",
             summary: data.summary || "",
-            jobType: data.job_type || "fulltime",
+            job_type: data.job_type || "fulltime",
             salary: data.salary?.toString() || "80000",
-            workMode: data.work_mode || "hybrid",
+            work_mode: data.work_mode || "hybrid",
             relocation: data.relocation || "yes",
             h1b: data.h1b || "yes",
-            visibility: data.visibility !== false
+            visibility: data.visibility !== false,
+            location: data.location || ""
           });
-          
-          if (data.location) {
-            setLocation(data.location);
-          }
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
@@ -91,7 +103,7 @@ const Profile = () => {
     loadUserProfile();
   }, [toast]);
   
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: keyof ProfileData, value: string | boolean | number) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -106,7 +118,6 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("resume", file);
 
-      // Simulate file upload and text extraction
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const summary = await generateSummary({
@@ -114,7 +125,6 @@ const Profile = () => {
         fileName: file.name
       });
 
-      // Update the professional summary textarea
       const summaryElement = document.getElementById("summary") as HTMLTextAreaElement;
       if (summaryElement) {
         summaryElement.value = summary;
@@ -147,22 +157,21 @@ const Profile = () => {
         return;
       }
       
-      // Save profile data to Supabase
       const { error } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
           email: formData.email,
           phone: formData.phone,
           location: location,
           linkedin: formData.linkedin,
           portfolio: formData.portfolio,
           summary: formData.summary,
-          job_type: formData.jobType,
-          salary: parseInt(formData.salary),
-          work_mode: formData.workMode,
+          job_type: formData.job_type,
+          salary: parseInt(formData.salary?.toString() || "80000"),
+          work_mode: formData.work_mode,
           relocation: formData.relocation,
           h1b: formData.h1b,
           visibility: formData.visibility,
@@ -222,16 +231,16 @@ const Profile = () => {
                     <Label htmlFor="firstName">First Name</Label>
                     <Input 
                       id="firstName" 
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      value={formData.first_name}
+                      onChange={(e) => handleInputChange('first_name', e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input 
                       id="lastName" 
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      value={formData.last_name}
+                      onChange={(e) => handleInputChange('last_name', e.target.value)}
                     />
                   </div>
                 </div>
@@ -311,8 +320,8 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="jobType">Job Type</Label>
                   <Select 
-                    value={formData.jobType}
-                    onValueChange={(value) => handleInputChange('jobType', value)}
+                    value={formData.job_type}
+                    onValueChange={(value) => handleInputChange('job_type', value)}
                   >
                     <SelectTrigger id="jobType">
                       <SelectValue placeholder="Select job type" />
@@ -339,8 +348,8 @@ const Profile = () => {
                 <div className="space-y-2">
                   <Label htmlFor="workMode">Work Mode</Label>
                   <Select 
-                    value={formData.workMode}
-                    onValueChange={(value) => handleInputChange('workMode', value)}
+                    value={formData.work_mode}
+                    onValueChange={(value) => handleInputChange('work_mode', value)}
                   >
                     <SelectTrigger id="workMode">
                       <SelectValue placeholder="Select work mode" />

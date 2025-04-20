@@ -52,26 +52,65 @@ export type Database = {
         Row: {
           ats_score: number | null
           created_at: string | null
-          full_name: string | null
+          email: string | null
+          first_name: string | null
+          h1b: string | null
           id: string
+          job_type: string | null
+          last_name: string | null
+          linkedin: string | null
+          location: string | null
+          phone: string | null
+          portfolio: string | null
+          relocation: string | null
           resume_url: string | null
+          salary: number | null
+          summary: string | null
           updated_at: string | null
+          visibility: boolean | null
+          work_mode: string | null
         }
         Insert: {
           ats_score?: number | null
           created_at?: string | null
-          full_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          h1b?: string | null
           id: string
+          job_type?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          location?: string | null
+          phone?: string | null
+          portfolio?: string | null
+          relocation?: string | null
           resume_url?: string | null
+          salary?: number | null
+          summary?: string | null
           updated_at?: string | null
+          visibility?: boolean | null
+          work_mode?: string | null
         }
         Update: {
           ats_score?: number | null
           created_at?: string | null
-          full_name?: string | null
+          email?: string | null
+          first_name?: string | null
+          h1b?: string | null
           id?: string
+          job_type?: string | null
+          last_name?: string | null
+          linkedin?: string | null
+          location?: string | null
+          phone?: string | null
+          portfolio?: string | null
+          relocation?: string | null
           resume_url?: string | null
+          salary?: number | null
+          summary?: string | null
           updated_at?: string | null
+          visibility?: boolean | null
+          work_mode?: string | null
         }
         Relationships: []
       }
