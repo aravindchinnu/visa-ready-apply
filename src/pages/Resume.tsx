@@ -1,10 +1,9 @@
-
 import { useState, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { Upload } from "lucide-react";
+import { Upload, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 
@@ -16,6 +15,60 @@ const Resume = () => {
   const [atsScore, setAtsScore] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
+
+  const verifyUpload = async (path: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .list(path.split('/')[0]);
+
+      if (error) throw error;
+      
+      const fileExists = data.some(file => file.name === path.split('/')[1]);
+      return fileExists;
+      
+    } catch (error) {
+      console.error('Verification error:', error);
+      return false;
+    }
+  };
+
+  const handleSaveConfirmation = async () => {
+    if (!file) {
+      toast({
+        variant: "destructive",
+        title: "No file selected",
+        description: "Please select a resume file first.",
+      });
+      return;
+    }
+
+    const user = (await supabase.auth.getUser()).data.user;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication error",
+        description: "Please sign in to save your resume.",
+      });
+      return;
+    }
+
+    const filePath = `${user.id}/${Date.now()}-${file.name}`;
+    const isUploaded = await verifyUpload(filePath);
+
+    if (isUploaded) {
+      toast({
+        title: "Resume saved successfully",
+        description: "Your resume has been verified and saved in the database.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Save verification failed",
+        description: "There was an issue saving your resume. Please try uploading again.",
+      });
+    }
+  };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -76,7 +129,6 @@ const Resume = () => {
         .from('resumes')
         .upload(filePath, file, {
           upsert: true,
-          // Remove the onUploadProgress property as it's not supported
         });
 
       if (uploadError) throw uploadError;
@@ -150,20 +202,31 @@ const Resume = () => {
                     <p className="text-sm text-gray-500 mb-4">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    <div className="flex space-x-2 justify-center">
-                      <Button 
-                        onClick={handleUpload} 
-                        disabled={uploading || isUploaded}
-                      >
-                        {uploading ? "Uploading..." : isUploaded ? "Uploaded" : "Upload Resume"}
-                      </Button>
-                      <Button variant="outline" onClick={() => {
-                        setFile(null);
-                        setPreview(null);
-                        setIsUploaded(false);
-                      }}>
-                        Change
-                      </Button>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex space-x-2 justify-center">
+                        <Button 
+                          onClick={handleUpload} 
+                          disabled={uploading || isUploaded}
+                        >
+                          {uploading ? "Uploading..." : isUploaded ? "Uploaded" : "Upload Resume"}
+                        </Button>
+                        <Button variant="outline" onClick={() => {
+                          setFile(null);
+                          setPreview(null);
+                          setIsUploaded(false);
+                        }}>
+                          Change
+                        </Button>
+                      </div>
+                      {isUploaded && (
+                        <Button 
+                          onClick={handleSaveConfirmation}
+                          className="w-full"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          Verify Save Status
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
