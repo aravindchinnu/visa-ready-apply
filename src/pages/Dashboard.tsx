@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface Application {
-  id: number;
+  id: string; // Changed from number to string to match UUID from Supabase
   company: string;
   position: string;
   date: string;
