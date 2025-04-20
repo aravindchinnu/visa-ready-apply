@@ -16,6 +16,7 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
   const [open, setOpen] = useState(false);
   const [locations, setLocations] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -24,6 +25,7 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
         return;
       }
 
+      setLoading(true);
       try {
         const response = await fetch(
           `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
@@ -34,12 +36,12 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
         const data = await response.json();
         
         // Ensure we always have an array, even if the API response is unexpected
-        if (data.results && Array.isArray(data.results)) {
+        if (data && data.results && Array.isArray(data.results)) {
           const suggestions = data.results.map(
             (result: any) => `${result.city || ''}, ${result.state || ''}`
-          ).filter((location: string) => location !== ', '); // Filter out empty locations
+          ).filter((location: string) => location !== ', ' && location.trim() !== ''); // Filter out empty locations
           
-          setLocations(suggestions);
+          setLocations(suggestions || []);
         } else {
           console.error("Unexpected API response format:", data);
           setLocations([]);
@@ -47,10 +49,17 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
       } catch (error) {
         console.error("Error fetching locations:", error);
         setLocations([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchLocations();
+    // Debounce the API call
+    const timeoutId = setTimeout(() => {
+      fetchLocations();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
   }, [search]);
 
   return (
@@ -76,27 +85,33 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
               value={search}
               onValueChange={setSearch}
             />
-            <CommandEmpty>No locations found.</CommandEmpty>
-            <CommandGroup className="max-h-60 overflow-auto">
-              {locations.map((location) => (
-                <CommandItem
-                  key={location}
-                  value={location}
-                  onSelect={(currentValue) => {
-                    onChange(currentValue);
-                    setOpen(false);
-                  }}
-                >
-                  {location}
-                  <Check
-                    className={cn(
-                      "ml-auto h-4 w-4",
-                      value === location ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {loading ? (
+              <div className="py-2 px-4 text-sm text-center">Loading...</div>
+            ) : (
+              <>
+                <CommandEmpty>No locations found.</CommandEmpty>
+                <CommandGroup className="max-h-60 overflow-auto">
+                  {Array.isArray(locations) && locations.length > 0 ? locations.map((location) => (
+                    <CommandItem
+                      key={location}
+                      value={location}
+                      onSelect={(currentValue) => {
+                        onChange(currentValue);
+                        setOpen(false);
+                      }}
+                    >
+                      {location}
+                      <Check
+                        className={cn(
+                          "ml-auto h-4 w-4",
+                          value === location ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                    </CommandItem>
+                  )) : null}
+                </CommandGroup>
+              </>
+            )}
           </Command>
         </PopoverContent>
       </Popover>
