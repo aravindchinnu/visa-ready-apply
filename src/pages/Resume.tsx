@@ -1,6 +1,7 @@
-
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { FileUploadArea } from "@/components/resume/FileUploadArea";
 import { ResumeAnalysis } from "@/components/resume/ResumeAnalysis";
@@ -22,12 +23,21 @@ const Resume = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
+        <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Resume Management</h1>
-          <p className="text-gray-500 mt-2">
-            Upload and manage your resume for automated job applications
-          </p>
+          {isUploaded && (
+            <Button 
+              onClick={handleSaveConfirmation}
+              size="sm"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              Save Resume
+            </Button>
+          )}
         </div>
+        <p className="text-gray-500 -mt-4">
+          Upload and manage your resume for automated job applications
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
