@@ -1,1 +1,5 @@
+
 project_id = "mlsawasqqdtfcdwoozwo"
+
+[functions.job-scraper]
+verify_jwt = true
