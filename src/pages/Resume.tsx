@@ -1,9 +1,9 @@
-
 import { useState, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { Upload } from "lucide-react";
 
 const Resume = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -94,44 +94,40 @@ const Resume = () => {
                 <input
                   type="file"
                   id="resume-upload"
-                  className="hidden"
+                  className="block w-full h-full opacity-0 cursor-pointer absolute"
                   accept=".pdf"
                   onChange={handleFileChange}
                 />
                 {!file ? (
-                  <>
-                    <div className="text-4xl mb-4">📄</div>
-                    <p className="text-gray-500 text-center mb-4">
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-4 text-gray-500">
                       Drag and drop your resume here, or click to browse
                     </p>
-                    <label htmlFor="resume-upload">
-                      <Button variant="outline" className="cursor-pointer">
-                        Select File
-                      </Button>
-                    </label>
-                  </>
+                  </div>
                 ) : (
-                  <>
+                  <div className="text-center">
                     <div className="text-4xl mb-4">📄</div>
                     <p className="font-medium mb-1">{file.name}</p>
                     <p className="text-sm text-gray-500 mb-4">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 justify-center">
                       <Button 
                         onClick={handleUpload} 
                         disabled={uploading || isUploaded}
-                        className="bg-blue-600 hover:bg-blue-700"
                       >
                         {uploading ? "Uploading..." : isUploaded ? "Uploaded" : "Upload Resume"}
                       </Button>
-                      <label htmlFor="resume-upload">
-                        <Button variant="outline" className="cursor-pointer">
-                          Change
-                        </Button>
-                      </label>
+                      <Button variant="outline" onClick={() => {
+                        setFile(null);
+                        setPreview(null);
+                        setIsUploaded(false);
+                      }}>
+                        Change
+                      </Button>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
               
