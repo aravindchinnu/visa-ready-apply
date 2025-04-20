@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LocationInputProps {
@@ -13,108 +12,160 @@ interface LocationInputProps {
 }
 
 const LocationInput = ({ value, onChange }: LocationInputProps) => {
-  const [open, setOpen] = useState(false);
-  const [locations, setLocations] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  const [inputValue, setInputValue] = useState(value);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionBoxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Close suggestions when clicking outside
   useEffect(() => {
-    const fetchLocations = async () => {
-      if (search.length < 3) {
-        setLocations([]);
-        return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionBoxRef.current && 
+        !suggestionBoxRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
       }
+    };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Fetch locations when input changes
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (inputValue.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const response = await fetch(
           `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(
-            search
+            inputValue
           )}&type=city&filter=countrycode:us&format=json&apiKey=d803f774f174403a90a2d03fc1c8287d`
         );
         
+        if (!response.ok) {
+          throw new Error(`API request failed with status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
-        // Ensure we always have an array, even if the API response is unexpected
         if (data && data.results && Array.isArray(data.results)) {
-          const suggestions = data.results.map(
-            (result: any) => `${result.city || ''}, ${result.state || ''}`
-          ).filter((location: string) => location !== ', ' && location.trim() !== ''); // Filter out empty locations
+          const locationSuggestions = data.results
+            .map((result: any) => {
+              const city = result.city || '';
+              const state = result.state || '';
+              return city && state ? `${city}, ${state}` : '';
+            })
+            .filter(Boolean); // Remove empty strings
           
-          setLocations(suggestions || []);
+          setSuggestions(locationSuggestions);
         } else {
           console.error("Unexpected API response format:", data);
-          setLocations([]);
+          setSuggestions([]);
         }
       } catch (error) {
         console.error("Error fetching locations:", error);
-        setLocations([]);
+        setSuggestions([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    // Debounce the API call
-    const timeoutId = setTimeout(() => {
-      fetchLocations();
     }, 300);
 
-    return () => clearTimeout(timeoutId);
-  }, [search]);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [inputValue]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange(newValue);
+    setShowSuggestions(true);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    onChange(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // Make sure to handle focus on input to show suggestions
+  const handleInputFocus = () => {
+    if (inputValue.trim().length >= 3) {
+      setShowSuggestions(true);
+    }
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
       <Label htmlFor="location">Location</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Input
-            id="location"
-            value={value}
-            onChange={(e) => {
-              onChange(e.target.value);
-              setSearch(e.target.value);
-            }}
-            className="w-full"
-            placeholder="Enter a location..."
-          />
-        </PopoverTrigger>
-        <PopoverContent className="w-full p-0" align="start">
-          <Command>
-            <CommandInput
-              placeholder="Search locations..."
-              value={search}
-              onValueChange={setSearch}
-            />
-            {loading ? (
-              <div className="py-2 px-4 text-sm text-center">Loading...</div>
-            ) : (
-              <>
-                <CommandEmpty>No locations found.</CommandEmpty>
-                <CommandGroup className="max-h-60 overflow-auto">
-                  {Array.isArray(locations) && locations.length > 0 ? locations.map((location) => (
-                    <CommandItem
-                      key={location}
-                      value={location}
-                      onSelect={(currentValue) => {
-                        onChange(currentValue);
-                        setOpen(false);
-                      }}
-                    >
-                      {location}
-                      <Check
-                        className={cn(
-                          "ml-auto h-4 w-4",
-                          value === location ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                    </CommandItem>
-                  )) : null}
-                </CommandGroup>
-              </>
-            )}
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <div className="relative">
+        <Input
+          id="location"
+          ref={inputRef}
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          className="w-full"
+          placeholder="Enter a location..."
+        />
+        {loading && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      
+      {showSuggestions && (inputValue.trim().length >= 3) && (
+        <div 
+          ref={suggestionBoxRef}
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 shadow-md"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-2 text-sm text-muted-foreground">
+              Loading locations...
+            </div>
+          ) : suggestions.length > 0 ? (
+            <div className="py-1">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={`${suggestion}-${index}`}
+                  className={cn(
+                    "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                    value === suggestion ? "bg-accent text-accent-foreground" : ""
+                  )}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                  {value === suggestion && (
+                    <Check className="ml-auto h-4 w-4" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-center py-2 text-muted-foreground">
+              No locations found
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
