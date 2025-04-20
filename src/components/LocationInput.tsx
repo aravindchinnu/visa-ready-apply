@@ -30,13 +30,23 @@ const LocationInput = ({ value, onChange }: LocationInputProps) => {
             search
           )}&type=city&filter=countrycode:us&format=json&apiKey=d803f774f174403a90a2d03fc1c8287d`
         );
+        
         const data = await response.json();
-        const suggestions = data.results?.map(
-          (result: any) => `${result.city}, ${result.state}`
-        ) || [];
-        setLocations(suggestions);
+        
+        // Ensure we always have an array, even if the API response is unexpected
+        if (data.results && Array.isArray(data.results)) {
+          const suggestions = data.results.map(
+            (result: any) => `${result.city || ''}, ${result.state || ''}`
+          ).filter((location: string) => location !== ', '); // Filter out empty locations
+          
+          setLocations(suggestions);
+        } else {
+          console.error("Unexpected API response format:", data);
+          setLocations([]);
+        }
       } catch (error) {
         console.error("Error fetching locations:", error);
+        setLocations([]);
       }
     };
 
