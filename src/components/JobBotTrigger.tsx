@@ -79,7 +79,7 @@ const JobBotTrigger = ({ userId, onJobsFound }: JobBotTriggerProps) => {
     <Button
       onClick={triggerJobBotFromSettings}
       disabled={isTriggering}
-      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 text-lg shadow-md animate-pulse"
+      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 text-lg shadow-lg animate-pulse border-2 border-green-400 rounded-lg"
       size="lg"
       data-testid="trigger-job-bot"
     >
@@ -87,7 +87,7 @@ const JobBotTrigger = ({ userId, onJobsFound }: JobBotTriggerProps) => {
         "Hunting for Jobs..."
       ) : (
         <>
-          <Rocket className="mr-2 h-5 w-5" />
+          <Rocket className="mr-2 h-6 w-6" />
           TRIGGER JOB HUNT (Using Your Settings)
         </>
       )}

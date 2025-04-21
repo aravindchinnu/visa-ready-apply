@@ -161,6 +161,8 @@ const Dashboard = () => {
     });
   };
 
+  console.log("Dashboard rendering, userId:", userId); // Add debug log
+
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
@@ -168,14 +170,20 @@ const Dashboard = () => {
         
         <StatsCards stats={stats} />
         
-        {/* Add the JobBot component with higher visibility */}
-        {userId && (
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h2 className="text-xl font-semibold mb-4">Job Search & Auto-Apply</h2>
+        {/* JobBot Component - Prominently displayed with debug info */}
+        {userId ? (
+          <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-300 mb-6">
+            <h2 className="text-2xl font-semibold mb-4 text-blue-700">Job Search & Auto-Apply</h2>
+            <p className="text-sm text-gray-600 mb-4">Use this tool to search for jobs and automatically apply based on your profile settings.</p>
             <JobBot 
               userId={userId} 
               onJobsFound={handleJobsFound}
             />
+          </div>
+        ) : (
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-300 mb-6">
+            <h2 className="text-xl font-semibold mb-2">User ID not available</h2>
+            <p>Please make sure you're logged in to access the Job Bot.</p>
           </div>
         )}
         
