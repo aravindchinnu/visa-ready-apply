@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { XCircle, Mail, Info } from "lucide-react";
+import { XCircle, Mail, Info, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,8 +17,21 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEmailNotConfirmed, setIsEmailNotConfirmed] = useState(false);
+  const [isLinkExpiredDialogOpen, setIsLinkExpiredDialogOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check for link expired error in URL
+  useState(() => {
+    const params = new URLSearchParams(location.search);
+    const errorCode = params.get("error_code");
+    const errorDescription = params.get("error_description");
+    
+    if (errorCode === "otp_expired" || (errorDescription && errorDescription.includes("link+is+invalid+or+has+expired"))) {
+      setIsLinkExpiredDialogOpen(true);
+    }
+  });
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -188,6 +202,47 @@ const Login = () => {
           </p>
         </CardFooter>
       </Card>
+
+      {/* Expired Link Dialog */}
+      <Dialog open={isLinkExpiredDialogOpen} onOpenChange={setIsLinkExpiredDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirmation Link Expired
+            </DialogTitle>
+            <DialogDescription>
+              The email confirmation link you clicked has expired or is invalid.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">
+              Please enter your email address below to receive a new confirmation link.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="resend-email">Email</Label>
+              <Input 
+                id="resend-email" 
+                type="email" 
+                placeholder="hello@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="default" 
+              className="w-full"
+              onClick={handleResendConfirmation}
+              disabled={isLoading || !email}
+            >
+              {isLoading ? "Sending..." : "Send New Confirmation Link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
