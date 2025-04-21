@@ -16,6 +16,7 @@ interface Application {
   date: string;
   status: string;
   h1bStatus: string | boolean;
+  atsScore?: number | null;
 }
 
 const Dashboard = () => {
@@ -86,16 +87,17 @@ const Dashboard = () => {
         position: app.job_title,
         date: new Date(app.created_at).toISOString().split('T')[0],
         status: app.status,
-        h1bStatus: app.h1b_status ? "Sponsors" : "Unknown"
+        h1bStatus: app.h1b_status ? "Sponsors" : "Unknown",
+        atsScore: typeof app.ats_score === "number" ? app.ats_score : null, // ATS score per application (may be undefined)
       }));
 
       setApplications(formattedApplications);
-      
+
       const total = data.length;
       const interviews = data.filter(app => app.status === "Interview").length;
       const h1bEligible = data.filter(app => app.h1b_status === true).length;
       const successRate = total > 0 ? Math.round((interviews / total) * 100) : 0;
-      
+
       setStats({
         total,
         interviews,
