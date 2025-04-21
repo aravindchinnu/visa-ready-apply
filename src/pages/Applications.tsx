@@ -1,65 +1,90 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Application {
+  id: string;
+  company: string;
+  position: string;
+  date: string;
+  location: string;
+  status: string;
+  h1bStatus: string;
+  salary: string;
+  atsScore?: number | null;
+}
 
 const Applications = () => {
-  const [applications, setApplications] = useState([
-    { 
-      id: 1, 
-      company: "Tech Innovations Inc", 
-      position: "Senior Frontend Developer", 
-      date: "2025-04-15", 
-      location: "San Francisco, CA", 
-      status: "Applied", 
-      h1bStatus: "Sponsors",
-      salary: "$120,000 - $150,000"
-    },
-    { 
-      id: 2, 
-      company: "Global Systems", 
-      position: "Full Stack Engineer", 
-      date: "2025-04-14", 
-      location: "New York, NY", 
-      status: "Pending", 
-      h1bStatus: "Sponsors",
-      salary: "$110,000 - $135,000"
-    },
-    { 
-      id: 3, 
-      company: "Data Dynamics", 
-      position: "React Developer", 
-      date: "2025-04-12", 
-      location: "Seattle, WA", 
-      status: "Rejected", 
-      h1bStatus: "Unknown",
-      salary: "$90,000 - $120,000"
-    },
-    { 
-      id: 4, 
-      company: "Nexus Software", 
-      position: "Frontend Engineer", 
-      date: "2025-04-10", 
-      location: "Austin, TX", 
-      status: "Interview", 
-      h1bStatus: "Sponsors",
-      salary: "$95,000 - $125,000"
-    },
-    { 
-      id: 5, 
-      company: "Cloud Technologies", 
-      position: "UI Developer", 
-      date: "2025-04-08", 
-      location: "Remote", 
-      status: "Applied", 
-      h1bStatus: "Sponsors",
-      salary: "$100,000 - $130,000"
-    },
-  ]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch user ID and applications on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        fetchApplications(user.id);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  // Realtime updates for this user's applications
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('public:applications_page')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'applications',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          fetchApplications(userId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  // Fetch applications from Supabase
+  const fetchApplications = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) {
+      setApplications([]);
+      return;
+    }
+    // Convert DB rows to the Application type needed for display
+    const formatted = (data || []).map((app: any) => ({
+      id: app.id,
+      company: app.company_name,
+      position: app.job_title,
+      date: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : "",
+      location: "-", // Supabase does not currently store location directly
+      status: app.status || "Pending",
+      h1bStatus: app.h1b_status === true ? "Sponsors" : "Unknown",
+      salary: "-", // Supabase does not store salary currently
+      atsScore: typeof app.ats_score === "number" ? app.ats_score : null,
+    }));
+    setApplications(formatted);
+  };
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -81,7 +106,7 @@ const Applications = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Applications</h1>
-          <p className="text-gray-500 mt-2">Track all your job applications</p>
+          <p className="text-gray-500 mt-2">Track all your job applications (Realtime updates)</p>
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -139,6 +164,7 @@ const Applications = () => {
                         <th className="px-6 py-3">Location</th>
                         <th className="px-6 py-3">Date Applied</th>
                         <th className="px-6 py-3">Salary Range</th>
+                        <th className="px-6 py-3">ATS Score</th>
                         <th className="px-6 py-3">Status</th>
                         <th className="px-6 py-3">H1B</th>
                         <th className="px-6 py-3">Actions</th>
@@ -152,6 +178,11 @@ const Applications = () => {
                           <td className="px-6 py-4">{app.location}</td>
                           <td className="px-6 py-4">{app.date}</td>
                           <td className="px-6 py-4">{app.salary}</td>
+                          <td className="px-6 py-4">
+                            {app.atsScore !== null && app.atsScore !== undefined
+                              ? <span>{app.atsScore}</span>
+                              : <span className="text-gray-400">N/A</span>}
+                          </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(app.status)}`}>
                               {app.status}
@@ -214,7 +245,9 @@ const Applications = () => {
         
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-500">
-            Showing 5 of 24 applications
+            {applications.length === 0
+              ? "No applications found"
+              : `Showing ${applications.length} application(s)`}
           </div>
           <div className="flex space-x-2">
             <Button variant="outline" size="sm">Previous</Button>
@@ -227,3 +260,4 @@ const Applications = () => {
 };
 
 export default Applications;
+
