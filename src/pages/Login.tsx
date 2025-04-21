@@ -28,8 +28,40 @@ const Login = () => {
     
     if (errorCode === "otp_expired" || (errorDescription && errorDescription.includes("link+is+invalid+or+has+expired"))) {
       setIsLinkExpiredDialogOpen(true);
+      setError("Your confirmation link has expired or is invalid. Please request a new one.");
+    } else if (errorCode || errorDescription) {
+      setError(decodeURIComponent(errorDescription || `Authentication error: ${errorCode}`));
     }
-  }, [location.search]);
+    
+    const accessToken = params.get("access_token");
+    if (accessToken) {
+      const refreshToken = params.get("refresh_token");
+      const expiresIn = params.get("expires_in");
+      const type = params.get("type");
+      
+      console.log("Detected tokens in URL, setting session...");
+      
+      if (refreshToken && type) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+          expires_in: parseInt(expiresIn || "0", 10),
+          token_type: type,
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error("Error setting session:", error);
+            setError(error.message);
+          } else if (data.session) {
+            toast({
+              title: "Email confirmed",
+              description: "You have successfully confirmed your email and are now logged in.",
+            });
+            navigate("/dashboard");
+          }
+        });
+      }
+    }
+  }, [location.search, navigate, toast]);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
