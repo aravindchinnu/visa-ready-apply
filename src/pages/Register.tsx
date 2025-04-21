@@ -7,14 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { XCircle } from "lucide-react";
 
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    fullName: ''
+    confirmPassword: ''
   });
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -22,6 +26,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
     if (formData.password !== formData.confirmPassword) {
       toast({
@@ -29,6 +34,7 @@ const Register = () => {
         title: "Passwords don't match",
         description: "Please make sure both passwords are the same.",
       });
+      setError("Passwords don't match. Please make sure both passwords are the same.");
       setIsLoading(false);
       return;
     }
@@ -39,7 +45,8 @@ const Register = () => {
         password: formData.password,
         options: {
           data: {
-            full_name: formData.fullName,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
           }
         }
       });
@@ -53,11 +60,13 @@ const Register = () => {
       
       navigate("/login");
     } catch (error: any) {
+      console.error("Registration error:", error.message);
       toast({
         variant: "destructive",
         title: "Registration failed",
         description: error.message || "Please try again later.",
       });
+      setError(error.message || "Registration failed. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -80,16 +89,35 @@ const Register = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <XCircle className="h-4 w-4" />
+              <AlertTitle>Registration failed</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input 
-                id="fullName" 
-                placeholder="John Doe" 
-                required 
-                value={formData.fullName}
-                onChange={handleChange}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input 
+                  id="firstName" 
+                  placeholder="John" 
+                  required 
+                  value={formData.firstName}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input 
+                  id="lastName" 
+                  placeholder="Doe" 
+                  required 
+                  value={formData.lastName}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
