@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useDashboardAuth } from "./useDashboardAuth";
 import { useDashboardRealtime } from "./useDashboardRealtime";
 import { useDashboardData } from "./useDashboardData";
+import { Loader } from "lucide-react";
 
 // Re-exported Application type for local use
 interface Application {
@@ -24,25 +25,37 @@ interface Application {
 
 const DashboardMain = () => {
   const [activeTab, setActiveTab] = useState("all");
-  const { applications, stats, resumeUploaded, profileComplete, fetchApplications, checkProfileStatus } = useDashboardData();
+  const { 
+    applications, 
+    stats, 
+    resumeUploaded, 
+    profileComplete, 
+    isLoading,
+    fetchApplications, 
+    checkProfileStatus 
+  } = useDashboardData();
   const [userId, setUserId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [dataInitialized, setDataInitialized] = useState(false);
 
   // Auth and Init handlers
-  const authHandler = useCallback(
-    (uid: string) => {
-      setUserId(uid);
-    },
-    []
-  );
-
-  useDashboardAuth(
-    uid => {
-      setUserId(uid);
+  const authHandler = useCallback((uid: string) => {
+    setUserId(uid);
+    
+    // Only fetch data once when a user is authenticated
+    if (uid && !dataInitialized) {
       fetchApplications(uid);
       checkProfileStatus(uid);
-    },
-    () => setUserId(null)
+      setDataInitialized(true);
+    }
+  }, [fetchApplications, checkProfileStatus, dataInitialized]);
+
+  useDashboardAuth(
+    authHandler,
+    () => {
+      setUserId(null);
+      setDataInitialized(false);
+    }
   );
 
   // Subscribe to realtime updates
@@ -92,7 +105,14 @@ const DashboardMain = () => {
             <TabsTrigger value="h1b">H1B Sponsors</TabsTrigger>
           </TabsList>
           <TabsContent value={activeTab} className="mt-4">
-            <ApplicationsTable applications={applications} activeTab={activeTab} />
+            {isLoading ? (
+              <div className="flex justify-center items-center p-8">
+                <Loader className="h-8 w-8 animate-spin text-blue-500" />
+                <span className="ml-2 text-gray-600">Loading applications...</span>
+              </div>
+            ) : (
+              <ApplicationsTable applications={applications} activeTab={activeTab} />
+            )}
           </TabsContent>
         </Tabs>
 

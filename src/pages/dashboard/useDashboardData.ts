@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -38,9 +38,18 @@ export function useDashboardData() {
   });
   const [resumeUploaded, setResumeUploaded] = useState(false);
   const [profileComplete, setProfileComplete] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const { toast } = useToast();
+  const toastShownRef = useRef(false);
 
   const fetchApplications = async (userId: string) => {
+    // If already loading or we've already shown an error toast, don't try again
+    if (isLoading || (hasError && toastShownRef.current)) return;
+    
+    setIsLoading(true);
+    setHasError(false);
+    
     try {
       const { data, error } = await supabase
         .from('applications')
@@ -75,12 +84,24 @@ export function useDashboardData() {
         h1bEligible,
         successRate
       });
+      
+      // Reset error state if successful
+      setHasError(false);
+      toastShownRef.current = false;
+      
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to load applications",
-        description: "Please try refreshing the page",
-      });
+      setHasError(true);
+      // Only show the toast once to prevent multiple notifications
+      if (!toastShownRef.current) {
+        toast({
+          variant: "destructive",
+          title: "Failed to load applications",
+          description: "Please try refreshing the page",
+        });
+        toastShownRef.current = true;
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,6 +131,8 @@ export function useDashboardData() {
     stats,
     resumeUploaded,
     profileComplete,
+    isLoading,
+    hasError,
     fetchApplications,
     checkProfileStatus,
     setApplications,
