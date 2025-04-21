@@ -24,7 +24,7 @@ serve(async (req) => {
 
   try {
     // Get request data
-    const { userId, jobTitles, locations, h1bOnly } = await req.json();
+    const { userId, jobTitles, locations, h1bOnly, salary, autoApply } = await req.json();
 
     if (!userId) {
       return new Response(
@@ -53,23 +53,54 @@ serve(async (req) => {
       );
     }
 
+    // Log the request with all parameters to understand what's being requested
+    console.log('Job Search Request:', {
+      userId,
+      jobTitles,
+      locations, 
+      h1bOnly,
+      salary,
+      autoApply,
+      hasResume: !!profile.resume_url
+    });
+
     // Mock job scraping - in a real implementation, this would call external job APIs
     // or use web scraping libraries to find jobs matching the criteria
     const jobSources = ['LinkedIn', 'Indeed', 'Glassdoor', 'Monster'];
     const mockJobs = [];
     
-    // Generate 5-15 random jobs
-    const numJobs = Math.floor(Math.random() * 10) + 5;
+    // Generate 5-15 random jobs, with more if autoApply is true
+    const numJobs = autoApply 
+      ? Math.floor(Math.random() * 15) + 10 // 10-25 jobs when auto-applying
+      : Math.floor(Math.random() * 10) + 5; // 5-15 jobs for normal search
     
     const titles = (jobTitles || ['Software Developer', 'Frontend Engineer', 'React Developer']).split(',');
     const locationList = (locations || ['San Francisco', 'New York', 'Remote']).split(',');
     
+    // Helper to get random element from array
+    const getRandomElement = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+    
+    // Create random jobs with more realistic values
     for (let i = 0; i < numJobs; i++) {
-      const randomTitle = titles[Math.floor(Math.random() * titles.length)].trim();
-      const randomLocation = locationList[Math.floor(Math.random() * locationList.length)].trim();
-      const randomCompany = `Company ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
-      const randomSource = jobSources[Math.floor(Math.random() * jobSources.length)];
-      const randomH1b = h1bOnly ? true : Math.random() > 0.5;
+      const randomTitle = getRandomElement(titles).trim();
+      const randomLocation = getRandomElement(locationList).trim();
+      
+      // Generate more realistic company names
+      const companyPrefixes = ['Tech', 'Digital', 'Global', 'United', 'Next', 'Cloud', 'Data', 'Cyber', 'Meta'];
+      const companyTypes = ['Systems', 'Technologies', 'Solutions', 'Innovations', 'Networks', 'Software', 'Group'];
+      const randomCompany = `${getRandomElement(companyPrefixes)}${getRandomElement(companyTypes)}`;
+      
+      const randomSource = getRandomElement(jobSources);
+      
+      // If h1bOnly is true, all companies should be H1B sponsors
+      // If h1bOnly is false, about 40% of companies should be H1B sponsors
+      const randomH1b = h1bOnly ? true : Math.random() < 0.4;
+      
+      // Apply salary filter if provided
+      const jobSalary = Math.floor(Math.random() * 70000) + 80000; // $80k-$150k
+      if (salary && jobSalary < salary) {
+        continue; // Skip this job if salary is too low
+      }
       
       mockJobs.push({
         job_title: randomTitle,
@@ -96,19 +127,45 @@ serve(async (req) => {
     }
     
     // Start the "auto application" process for each job
-    // In a real implementation, this would be a separate function or queue
+    // Apply more aggressively if autoApply flag is set
+    const applyProbability = autoApply ? 0.8 : 0.7; // 80% vs 70% apply rate
+    
     setTimeout(async () => {
       try {
         // Update status to "Applied" for random subset of jobs
         const jobsToUpdate = insertedJobs
-          .filter(() => Math.random() > 0.3) // 70% of jobs get applied to
+          .filter(() => Math.random() < applyProbability)
           .map(job => job.id);
           
         if (jobsToUpdate.length > 0) {
           await supabaseAdmin
             .from('applications')
-            .update({ status: 'Applied' })
+            .update({ 
+              status: 'Applied',
+              applied_at: new Date().toISOString()
+            })
             .in('id', jobsToUpdate);
+            
+          console.log(`Auto-applied to ${jobsToUpdate.length} jobs for user ${userId}`);
+        }
+        
+        // For some applications, simulate interview requests (only if autoApply is true)
+        if (autoApply) {
+          const interviewJobs = insertedJobs
+            .filter(() => Math.random() < 0.15) // 15% of jobs lead to interviews
+            .map(job => job.id);
+            
+          if (interviewJobs.length > 0) {
+            // Delay interview status updates to simulate realistic timeline
+            setTimeout(async () => {
+              await supabaseAdmin
+                .from('applications')
+                .update({ status: 'Interview' })
+                .in('id', interviewJobs);
+                
+              console.log(`Interview requests received for ${interviewJobs.length} jobs`);
+            }, 10000); // After 10 seconds
+          }
         }
       } catch (e) {
         console.error('Background job application error:', e);
@@ -117,7 +174,9 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({
-        message: 'Job search initiated successfully',
+        message: autoApply 
+          ? 'Job hunt and auto-apply initiated successfully' 
+          : 'Job search initiated successfully',
         jobsFound: mockJobs.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
