@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -124,7 +125,8 @@ const Dashboard = () => {
       setResumeUploaded(!!data.resume_url);
       
       let completeness = 0;
-      if (data.full_name) completeness += 25;
+      // Fix here - use first_name instead of full_name
+      if (data.first_name) completeness += 25;
       if (data.resume_url) completeness += 50;
       setProfileComplete(completeness);
     } catch (error) {

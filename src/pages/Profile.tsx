@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,7 +81,8 @@ const Profile = () => {
             portfolio: data.portfolio || "",
             summary: data.summary || "",
             job_type: data.job_type || "fulltime",
-            salary: data.salary?.toString() || "80000",
+            // Fix here - ensure salary is parsed as a number
+            salary: data.salary || 80000,
             work_mode: data.work_mode || "hybrid",
             relocation: data.relocation || "yes",
             h1b: data.h1b || "yes",
@@ -170,7 +172,8 @@ const Profile = () => {
           portfolio: formData.portfolio,
           summary: formData.summary,
           job_type: formData.job_type,
-          salary: parseInt(formData.salary?.toString() || "80000"),
+          // Fix here - ensure salary is a number
+          salary: typeof formData.salary === 'string' ? parseInt(formData.salary) : formData.salary,
           work_mode: formData.work_mode,
           relocation: formData.relocation,
           h1b: formData.h1b,
