@@ -9,12 +9,14 @@ interface JobBotProps {
 }
 
 const JobBot = ({ userId, onJobsFound }: JobBotProps) => {
+  console.log("JobBot rendering for userId:", userId); // Debug log
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Job Bot Control Center</CardTitle>
+    <Card className="shadow-md">
+      <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50">
+        <CardTitle className="text-xl text-center text-blue-700">Job Bot Control Center</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-6">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <JobBotTrigger userId={userId} onJobsFound={onJobsFound} />
         </div>

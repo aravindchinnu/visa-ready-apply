@@ -168,11 +168,15 @@ const Dashboard = () => {
         
         <StatsCards stats={stats} />
         
+        {/* Add the JobBot component with higher visibility */}
         {userId && (
-          <JobBot 
-            userId={userId} 
-            onJobsFound={handleJobsFound}
-          />
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h2 className="text-xl font-semibold mb-4">Job Search & Auto-Apply</h2>
+            <JobBot 
+              userId={userId} 
+              onJobsFound={handleJobsFound}
+            />
+          </div>
         )}
         
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
