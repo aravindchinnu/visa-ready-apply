@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import StatsCards from "@/components/dashboard/StatsCards";
 import ApplicationsTable from "@/components/dashboard/ApplicationsTable";
 import QuickActions from "@/components/dashboard/QuickActions";
+import { useNavigate } from "react-router-dom";
 
 interface Application {
   id: string;
@@ -43,23 +44,50 @@ const Dashboard = () => {
     successRate: 0,
   });
   const [userId, setUserId] = useState<string | null>(null);
+  const [session, setSession] = useState<any>(null);
   const [resumeUploaded, setResumeUploaded] = useState(false);
   const [profileComplete, setProfileComplete] = useState(0);
   const [activeTab, setActiveTab] = useState("all");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
+  // Set up auth state listener first
   useEffect(() => {
-    const fetchUserData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        fetchApplications(user.id);
-        checkProfileStatus(user.id);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        console.log("Auth state changed:", event, newSession?.user?.id);
+        setSession(newSession);
+        setUserId(newSession?.user?.id || null);
+        
+        if (!newSession) {
+          // User is not logged in, redirect to login page
+          navigate('/login');
+        }
+      }
+    );
+
+    // Then check for existing session
+    const fetchUserSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      console.log("Current session:", data.session?.user?.id);
+      setSession(data.session);
+      setUserId(data.session?.user?.id || null);
+      
+      if (data.session?.user?.id) {
+        fetchApplications(data.session.user.id);
+        checkProfileStatus(data.session.user.id);
+      } else {
+        // User is not logged in, redirect to login page
+        navigate('/login');
       }
     };
 
-    fetchUserData();
-  }, []);
+    fetchUserSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   useEffect(() => {
     if (!userId) return;
@@ -161,7 +189,7 @@ const Dashboard = () => {
     });
   };
 
-  console.log("Dashboard rendering, userId:", userId); // Add debug log
+  console.log("Dashboard rendering, userId:", userId); // Debug log
 
   return (
     <DashboardLayout>

@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -16,18 +19,26 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // In a real app, you would handle authentication with a backend
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       
-      // Just for demo purposes - in a real app this would verify credentials
+      if (error) throw error;
+      
+      toast({
+        title: "Login successful",
+        description: "You are now logged in",
+      });
+      
       navigate("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Login error:", error.message);
       toast({
         variant: "destructive",
         title: "Authentication failed",
-        description: "Please check your credentials and try again.",
+        description: error.message || "Please check your credentials and try again.",
       });
     } finally {
       setIsLoading(false);
@@ -47,11 +58,24 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="hello@example.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="hello@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
