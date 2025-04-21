@@ -1,7 +1,14 @@
 
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -9,7 +16,8 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const location = useLocation();
-  
+  const navigate = useNavigate();
+
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: "📊" },
     { name: "Profile", href: "/profile", icon: "👤" },
@@ -17,6 +25,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { name: "Applications", href: "/applications", icon: "📋" },
     { name: "Settings", href: "/settings", icon: "⚙️" },
   ];
+
+  // Dummy logout handler. Replace with actual logout logic if using authentication.
+  const handleLogout = () => {
+    // If you use Supabase auth, example:
+    // await supabase.auth.signOut();
+    // Then navigate("/login"); etc.
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,14 +51,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 🔔
               </Button>
               <div className="relative ml-3">
-                <div className="flex items-center">
-                  <Button variant="ghost" className="flex items-center">
-                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
-                      U
-                    </div>
-                    <span className="ml-2 hidden md:block">User</span>
-                  </Button>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center focus:outline-none">
+                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
+                        U
+                      </div>
+                      <span className="ml-2 hidden md:block">User</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings">Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-600 cursor-pointer"
+                    >
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -85,3 +118,4 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 };
 
 export default DashboardLayout;
+
