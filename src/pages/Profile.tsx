@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,10 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import LocationInput from "@/components/LocationInput";
 import { generateSummary } from "@/utils/resumeUtils";
 import { supabase } from "@/integrations/supabase/client";
+import PersonalInfoSection from "@/components/profile/PersonalInfoSection";
+import ProfessionalSummarySection from "@/components/profile/ProfessionalSummarySection";
+import JobPreferencesSection from "@/components/profile/JobPreferencesSection";
+import ProfileVisibilitySection from "@/components/profile/ProfileVisibilitySection";
 
 interface ProfileData {
   first_name: string | null;
@@ -81,7 +84,6 @@ const Profile = () => {
             portfolio: data.portfolio || "",
             summary: data.summary || "",
             job_type: data.job_type || "fulltime",
-            // Fix here - ensure salary is parsed as a number
             salary: data.salary || 80000,
             work_mode: data.work_mode || "hybrid",
             relocation: data.relocation || "yes",
@@ -172,7 +174,6 @@ const Profile = () => {
           portfolio: formData.portfolio,
           summary: formData.summary,
           job_type: formData.job_type,
-          // Fix here - ensure salary is a number
           salary: typeof formData.salary === 'string' ? parseInt(formData.salary) : formData.salary,
           work_mode: formData.work_mode,
           relocation: formData.relocation,
@@ -221,209 +222,26 @@ const Profile = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  This information will be included in your job applications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input 
-                      id="firstName" 
-                      value={formData.first_name}
-                      onChange={(e) => handleInputChange('first_name', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input 
-                      id="lastName" 
-                      value={formData.last_name}
-                      onChange={(e) => handleInputChange('last_name', e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input 
-                      id="phone" 
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                    />
-                  </div>
-                  <LocationInput value={location} onChange={setLocation} />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="linkedin">LinkedIn Profile</Label>
-                  <Input 
-                    id="linkedin" 
-                    value={formData.linkedin}
-                    onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="portfolio">Portfolio/Website</Label>
-                  <Input 
-                    id="portfolio" 
-                    value={formData.portfolio}
-                    onChange={(e) => handleInputChange('portfolio', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Professional Summary</CardTitle>
-                <CardDescription>
-                  A brief summary of your professional background and goals
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="summary">Professional Summary</Label>
-                  <Textarea
-                    id="summary"
-                    rows={5}
-                    value={formData.summary}
-                    onChange={(e) => handleInputChange('summary', e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <PersonalInfoSection
+              formData={formData}
+              onChange={handleInputChange}
+              location={location}
+              setLocation={setLocation}
+            />
+            <ProfessionalSummarySection
+              summary={formData.summary}
+              onChange={value => handleInputChange('summary', value)}
+            />
           </div>
-          
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Job Preferences</CardTitle>
-                <CardDescription>
-                  Define your job search criteria
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="jobType">Job Type</Label>
-                  <Select 
-                    value={formData.job_type}
-                    onValueChange={(value) => handleInputChange('job_type', value)}
-                  >
-                    <SelectTrigger id="jobType">
-                      <SelectValue placeholder="Select job type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fulltime">Full-Time</SelectItem>
-                      <SelectItem value="parttime">Part-Time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="freelance">Freelance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="salary">Minimum Salary</Label>
-                  <Input 
-                    id="salary" 
-                    type="number" 
-                    value={formData.salary}
-                    onChange={(e) => handleInputChange('salary', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="workMode">Work Mode</Label>
-                  <Select 
-                    value={formData.work_mode}
-                    onValueChange={(value) => handleInputChange('work_mode', value)}
-                  >
-                    <SelectTrigger id="workMode">
-                      <SelectValue placeholder="Select work mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="onsite">On-site</SelectItem>
-                      <SelectItem value="remote">Remote</SelectItem>
-                      <SelectItem value="hybrid">Hybrid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="relocation">Willing to Relocate</Label>
-                  <Select 
-                    value={formData.relocation}
-                    onValueChange={(value) => handleInputChange('relocation', value)}
-                  >
-                    <SelectTrigger id="relocation">
-                      <SelectValue placeholder="Select option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                      <SelectItem value="certain">For Certain Locations</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="h1b">Require H1B Sponsorship</Label>
-                  <Select 
-                    value={formData.h1b}
-                    onValueChange={(value) => handleInputChange('h1b', value)}
-                  >
-                    <SelectTrigger id="h1b">
-                      <SelectValue placeholder="Select option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Visibility</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="visibility">Public Profile</Label>
-                  <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200">
-                    <input
-                      type="checkbox"
-                      id="visibility"
-                      className="peer h-0 w-0 opacity-0"
-                      checked={formData.visibility}
-                      onChange={(e) => handleInputChange('visibility', e.target.checked)}
-                    />
-                    <span className={`absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white transition-all ${formData.visibility ? 'left-[22px] peer-checked:[&+.track]:bg-blue-600' : ''}`}></span>
-                    <span className={`track absolute inset-0 rounded-full transition-all ${formData.visibility ? 'bg-blue-600' : ''}`}></span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500">
-                  When enabled, employers may find your profile through our platform.
-                </p>
-              </CardContent>
-            </Card>
+            <JobPreferencesSection
+              formData={formData}
+              onChange={handleInputChange}
+            />
+            <ProfileVisibilitySection
+              visibility={formData.visibility}
+              onChange={checked => handleInputChange('visibility', checked)}
+            />
           </div>
         </div>
         
