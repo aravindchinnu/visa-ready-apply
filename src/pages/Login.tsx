@@ -36,7 +36,6 @@ const Login = () => {
     const accessToken = params.get("access_token");
     if (accessToken) {
       const refreshToken = params.get("refresh_token");
-      const expiresIn = params.get("expires_in");
       const type = params.get("type");
       
       console.log("Detected tokens in URL, setting session...");
@@ -45,8 +44,6 @@ const Login = () => {
         supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken || "",
-          expires_in: parseInt(expiresIn || "0", 10),
-          token_type: type,
         }).then(({ data, error }) => {
           if (error) {
             console.error("Error setting session:", error);
