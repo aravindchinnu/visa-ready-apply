@@ -19,6 +19,21 @@ interface Application {
   atsScore?: number | null;
 }
 
+// Define a more complete type that matches what's coming from Supabase
+interface ApplicationData {
+  id: string;
+  company_name: string;
+  job_title: string;
+  created_at: string;
+  status: string;
+  h1b_status: boolean | null;
+  ats_score?: number | null; // Make this property optional to match database
+  user_id: string;
+  applied_at: string | null;
+  updated_at: string | null;
+  job_url: string | null;
+}
+
 const Dashboard = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [stats, setStats] = useState({
@@ -81,14 +96,17 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      const formattedApplications = data.map(app => ({
+      // Safely cast the data to our more comprehensive type
+      const applicationData = data as unknown as ApplicationData[];
+
+      const formattedApplications = applicationData.map(app => ({
         id: app.id,
         company: app.company_name,
         position: app.job_title,
         date: new Date(app.created_at).toISOString().split('T')[0],
         status: app.status,
         h1bStatus: app.h1b_status ? "Sponsors" : "Unknown",
-        atsScore: typeof app.ats_score === "number" ? app.ats_score : null, // ATS score per application (may be undefined)
+        atsScore: app.ats_score !== undefined ? app.ats_score : null, // Safely handle the ats_score property
       }));
 
       setApplications(formattedApplications);
