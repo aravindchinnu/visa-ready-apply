@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +21,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check for link expired error in URL
-  useState(() => {
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const errorCode = params.get("error_code");
     const errorDescription = params.get("error_description");
@@ -31,7 +29,7 @@ const Login = () => {
     if (errorCode === "otp_expired" || (errorDescription && errorDescription.includes("link+is+invalid+or+has+expired"))) {
       setIsLinkExpiredDialogOpen(true);
     }
-  });
+  }, [location.search]);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
